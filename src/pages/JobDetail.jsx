@@ -71,11 +71,11 @@ export default function JobDetail() {
       <div className="bg-white/[0.04] border border-white/10 backdrop-blur-sm rounded-xl p-6 mb-8">
         <div className="flex items-start gap-4">
           <div className="w-16 h-16 bg-white/[0.08] rounded-xl flex items-center justify-center shrink-0 overflow-hidden">
-            {job.logoUrl ? (
+            {job.logoDomain ? (
               <img
-                src={job.logoUrl}
+                src={`https://www.google.com/s2/favicons?domain=${job.logoDomain}&sz=128`}
                 alt={`${job.company} logo`}
-                className="w-full h-full object-contain p-2"
+                className="w-10 h-10 object-contain"
                 onError={e => {
                   e.currentTarget.style.display = 'none';
                   e.currentTarget.nextSibling.style.display = 'flex';
@@ -83,7 +83,7 @@ export default function JobDetail() {
               />
             ) : null}
             <span
-              style={{ display: job.logoUrl ? 'none' : 'flex' }}
+              style={{ display: job.logoDomain ? 'none' : 'flex' }}
               className="w-full h-full items-center justify-center text-2xl font-bold text-slate-300"
             >
               {job.logoInitial}
