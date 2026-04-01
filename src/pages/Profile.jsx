@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useProfile } from '../context/useProfile';
 import { matchScore } from '../utils/matchScore';
+import { parseResume } from '../utils/parseResume';
 import { jobs } from '../data/jobs';
 
 export default function Profile() {
@@ -18,6 +19,8 @@ export default function Profile() {
 
   const [skillInput, setSkillInput] = useState('');
   const [saved, setSaved] = useState(false);
+  const [parsing, setParsing] = useState(false);
+  const [parsed, setParsed] = useState(false);
 
   const updateField = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -41,10 +44,35 @@ export default function Profile() {
     }));
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      updateField('resumeFileName', file.name);
+    if (!file) return;
+    updateField('resumeFileName', file.name);
+
+    if (file.name.toLowerCase().endsWith('.pdf')) {
+      setParsing(true);
+      setParsed(false);
+      try {
+        const result = await parseResume(file);
+        setForm((prev) => ({
+          ...prev,
+          name: result.name || prev.name,
+          university: result.university || prev.university,
+          major: result.major || prev.major,
+          gradYear: result.gradYear || prev.gradYear,
+          skills:
+            result.skills.length > 0
+              ? [...new Set([...prev.skills, ...result.skills])]
+              : prev.skills,
+          experience: result.experience || prev.experience,
+          resumeFileName: file.name,
+        }));
+        setParsed(true);
+      } catch {
+        // Silently fail — the file is still attached, just not parsed
+      } finally {
+        setParsing(false);
+      }
     }
   };
 
@@ -58,6 +86,12 @@ export default function Profile() {
     const timer = setTimeout(() => setSaved(false), 3000);
     return () => clearTimeout(timer);
   }, [saved]);
+
+  useEffect(() => {
+    if (!parsed) return;
+    const timer = setTimeout(() => setParsed(false), 3000);
+    return () => clearTimeout(timer);
+  }, [parsed]);
 
   const topMatches = useMemo(() => {
     if (!form.skills.length) return [];
@@ -219,6 +253,12 @@ export default function Profile() {
             </label>
             {form.resumeFileName && (
               <span className="text-slate-400 text-sm">{form.resumeFileName}</span>
+            )}
+            {parsing && (
+              <span className="text-violet-400 text-sm animate-pulse">Parsing resume...</span>
+            )}
+            {parsed && !parsing && (
+              <span className="text-emerald-400 text-sm">Resume parsed! Fields auto-filled.</span>
             )}
           </div>
         </div>
