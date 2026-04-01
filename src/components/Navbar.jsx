@@ -10,20 +10,24 @@ export default function Navbar() {
           InternQuest
         </Link>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1">
           <Link
             to="/jobs"
-            className={`text-sm font-medium transition-colors ${
+            className={`text-sm font-medium px-4 py-2 rounded-lg transition-all ${
               location.pathname === '/jobs' || location.pathname.startsWith('/jobs/')
-                ? 'text-slate-100'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'text-slate-100 bg-white/[0.08]'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.05]'
             }`}
           >
             Jobs
           </Link>
           <Link
             to="/profile"
-            className="text-sm font-medium px-4 py-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 text-white transition-opacity hover:opacity-90"
+            className={`text-sm font-medium px-4 py-2 rounded-lg transition-all ${
+              location.pathname === '/profile'
+                ? 'text-slate-100 bg-white/[0.08]'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.05]'
+            }`}
           >
             Profile
           </Link>
