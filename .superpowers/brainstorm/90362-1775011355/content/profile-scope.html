@@ -1,0 +1,26 @@
+<h2>What should the Profile page do in the MVP?</h2>
+<p class="subtitle">No backend — all state is local/mock. Pick the scope that fits the MVP.</p>
+
+<div class="options">
+  <div class="option" data-choice="minimal" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Minimal — Static Demo</h3>
+      <p>A pre-filled mock profile showing name, skills, university, and a placeholder resume. Not editable. Just demonstrates what the feature will look like.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="form" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Interactive Form (Recommended)</h3>
+      <p>User can fill in name, university, skills, experience. Saved to localStorage so it persists across refreshes. Resume upload is UI-only (no actual processing). Shows a mock "match score" on job cards based on selected skills.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="full" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Full Flow — Resume + Mock AI Score</h3>
+      <p>Everything in B, plus a visible "AI compatibility score" badge on job cards that adjusts based on the skills the user enters. Purely cosmetic calculation, but demos the core product vision.</p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.interninsider.me)",
+      "WebSearch",
+      "Read(//Users/I769353/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.6/skills/brainstorming/**)",
+      "Read(//Users/I769353/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.6/**)",
+      "Bash(bash scripts/start-server.sh --project-dir /Users/I769353/Documents/InternQuest)",
+      "Read(//Users/I769353/.claude/plugins/**)",
+      "Bash(npm create:*)",
+      "Bash(printf \"y\\\\n\")",
+      "Bash(npx create-vite@latest --help)",
+      "Bash(npx create-vite@latest . --template react --no-interactive)",
+      "Bash(mkdir -p /tmp/vite-scaffold)",
+      "Read(//tmp/**)",
+      "Bash(npx create-vite@latest internquest --template react --no-interactive)",
+      "Read(//private/tmp/vite-scaffold/internquest/**)",
+      "Bash(npm install:*)",
+      "Bash(timeout 15 npm run dev)",
+      "Bash(npm run:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

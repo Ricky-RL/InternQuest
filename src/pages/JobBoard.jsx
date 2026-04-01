@@ -1,0 +1,3 @@
+export default function JobBoard() {
+  return <div>JobBoard placeholder</div>;
+}
