@@ -27,18 +27,18 @@ export default function JobCard({ job, score }) {
     >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="w-10 h-10 rounded-lg bg-white/[0.08] flex items-center justify-center text-slate-300 font-bold text-sm shrink-0 overflow-hidden">
-          {job.logoUrl ? (
+          {job.logoDomain ? (
             <img
-              src={job.logoUrl}
+              src={`https://www.google.com/s2/favicons?domain=${job.logoDomain}&sz=64`}
               alt={`${job.company} logo`}
-              className="w-full h-full object-contain p-1"
+              className="w-6 h-6 object-contain"
               onError={e => {
                 e.currentTarget.style.display = 'none';
                 e.currentTarget.nextSibling.style.display = 'flex';
               }}
             />
           ) : null}
-          <span style={{ display: job.logoUrl ? 'none' : 'flex' }} className="w-full h-full items-center justify-center">
+          <span style={{ display: job.logoDomain ? 'none' : 'flex' }} className="w-full h-full items-center justify-center">
             {job.logoInitial}
           </span>
         </div>
