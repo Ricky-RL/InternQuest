@@ -6,7 +6,8 @@ GlobalWorkerOptions.workerSrc = new URL(
 ).href;
 
 /**
- * Extract all text from a PDF file.
+ * Extract all text from a PDF file, preserving line breaks
+ * by detecting y-coordinate changes between text items.
  */
 async function extractText(file) {
   const arrayBuffer = await file.arrayBuffer();
@@ -16,8 +17,23 @@ async function extractText(file) {
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
-    const strings = content.items.map((item) => item.str);
-    pages.push(strings.join(' '));
+    const lines = [];
+    let currentLine = '';
+    let lastY = null;
+
+    for (const item of content.items) {
+      const y = item.transform?.[5]; // y-coordinate from transform matrix
+      if (lastY !== null && y !== undefined && Math.abs(y - lastY) > 2) {
+        // Y position changed — new line
+        if (currentLine.trim()) lines.push(currentLine.trim());
+        currentLine = item.str;
+      } else {
+        currentLine += item.str;
+      }
+      if (y !== undefined) lastY = y;
+    }
+    if (currentLine.trim()) lines.push(currentLine.trim());
+    pages.push(lines.join('\n'));
   }
   return pages.join('\n');
 }
@@ -138,91 +154,127 @@ function extractGradYear(text) {
 
 /**
  * Extract skills from the resume text.
+ * Uses a two-pass approach: first try to find a skills section,
+ * then always scan the full text for known skill names.
  */
 function extractSkills(text) {
-  const knownSkills = [
-    'JavaScript',
-    'TypeScript',
-    'React',
-    'React Native',
-    'Angular',
-    'Vue',
-    'Vue.js',
-    'Next.js',
-    'Node.js',
-    'Express',
-    'Python',
-    'Java',
-    'C',
-    'C\\+\\+',
-    'C#',
-    'Go',
-    'Rust',
-    'Ruby',
-    'PHP',
-    'Swift',
-    'Kotlin',
-    'Scala',
-    'R',
-    'MATLAB',
-    'SQL',
-    'NoSQL',
-    'MongoDB',
-    'PostgreSQL',
-    'MySQL',
-    'Redis',
-    'GraphQL',
-    'REST',
-    'AWS',
-    'Azure',
-    'GCP',
-    'Docker',
-    'Kubernetes',
-    'Terraform',
-    'Git',
-    'GitHub',
-    'GitLab',
-    'CI/CD',
-    'Linux',
-    'HTML',
-    'CSS',
-    'Sass',
-    'Tailwind',
-    'Bootstrap',
-    'Figma',
-    'Excel',
-    'Tableau',
-    'Power BI',
-    'TensorFlow',
-    'PyTorch',
-    'Pandas',
-    'NumPy',
-    'Spring Boot',
-    'Django',
-    'Flask',
-    'FastAPI',
-    'Firebase',
-    'Supabase',
-    'Webpack',
-    'Vite',
-  ];
+  // Map of lowercase pattern → canonical display name
+  const skillMap = {
+    'javascript': 'JavaScript',
+    'typescript': 'TypeScript',
+    'react native': 'React Native',
+    'react.js': 'React',
+    'reactjs': 'React',
+    'react': 'React',
+    'angular': 'Angular',
+    'vue.js': 'Vue.js',
+    'vuejs': 'Vue.js',
+    'vue': 'Vue.js',
+    'next.js': 'Next.js',
+    'nextjs': 'Next.js',
+    'node.js': 'Node.js',
+    'nodejs': 'Node.js',
+    'express.js': 'Express',
+    'express': 'Express',
+    'python': 'Python',
+    'java': 'Java',
+    'c++': 'C++',
+    'c#': 'C#',
+    'golang': 'Go',
+    'rust': 'Rust',
+    'ruby': 'Ruby',
+    'php': 'PHP',
+    'swift': 'Swift',
+    'kotlin': 'Kotlin',
+    'scala': 'Scala',
+    'matlab': 'MATLAB',
+    'sql': 'SQL',
+    'nosql': 'NoSQL',
+    'mongodb': 'MongoDB',
+    'postgresql': 'PostgreSQL',
+    'postgres': 'PostgreSQL',
+    'mysql': 'MySQL',
+    'redis': 'Redis',
+    'graphql': 'GraphQL',
+    'rest api': 'REST APIs',
+    'rest apis': 'REST APIs',
+    'restful': 'REST APIs',
+    'aws': 'AWS',
+    'amazon web services': 'AWS',
+    'azure': 'Azure',
+    'gcp': 'GCP',
+    'google cloud': 'GCP',
+    'docker': 'Docker',
+    'kubernetes': 'Kubernetes',
+    'k8s': 'Kubernetes',
+    'terraform': 'Terraform',
+    'git': 'Git',
+    'github': 'GitHub',
+    'gitlab': 'GitLab',
+    'ci/cd': 'CI/CD',
+    'linux': 'Linux',
+    'html': 'HTML',
+    'css': 'CSS',
+    'sass': 'Sass',
+    'scss': 'Sass',
+    'tailwind': 'Tailwind',
+    'tailwindcss': 'Tailwind',
+    'bootstrap': 'Bootstrap',
+    'figma': 'Figma',
+    'excel': 'Excel',
+    'tableau': 'Tableau',
+    'power bi': 'Power BI',
+    'powerbi': 'Power BI',
+    'tensorflow': 'TensorFlow',
+    'pytorch': 'PyTorch',
+    'pandas': 'Pandas',
+    'numpy': 'NumPy',
+    'scikit-learn': 'Scikit-learn',
+    'sklearn': 'Scikit-learn',
+    'spring boot': 'Spring Boot',
+    'spring': 'Spring Boot',
+    'django': 'Django',
+    'flask': 'Flask',
+    'fastapi': 'FastAPI',
+    'firebase': 'Firebase',
+    'supabase': 'Supabase',
+    'webpack': 'Webpack',
+    'vite': 'Vite',
+    'machine learning': 'Machine Learning',
+    'deep learning': 'Deep Learning',
+    'natural language processing': 'NLP',
+    'nlp': 'NLP',
+    'computer vision': 'Computer Vision',
+    'data analysis': 'Data Analysis',
+    'data science': 'Data Science',
+    'agile': 'Agile',
+    'scrum': 'Scrum',
+    'jira': 'Jira',
+    'confluence': 'Confluence',
+  };
 
-  // Try to find a skills section first
-  const skillsSectionPattern =
-    /(?:Technical\s+)?Skills|Technologies|Languages|Tools[:\s]*\n?([\s\S]*?)(?:\n\s*\n|\n[A-Z][a-z]+\s*\n|$)/i;
-  const sectionMatch = text.match(skillsSectionPattern);
-
-  const searchText = sectionMatch ? sectionMatch[0] : text;
-
+  const textLower = text.toLowerCase();
   const found = new Set();
-  for (const skill of knownSkills) {
-    const regex = new RegExp(`\\b${skill}\\b`, 'i');
-    if (regex.test(searchText)) {
-      // Normalize the skill name to its canonical form
-      const canonical = skill.replace(/\\\+/g, '+');
-      found.add(canonical);
+
+  // Sort patterns by length descending so multi-word patterns match first
+  const patterns = Object.keys(skillMap).sort((a, b) => b.length - a.length);
+
+  for (const pattern of patterns) {
+    // Use indexOf for simple, reliable matching (no regex edge cases)
+    if (textLower.includes(pattern)) {
+      found.add(skillMap[pattern]);
     }
   }
+
+  // Remove "Java" if "JavaScript" is present (common false positive)
+  if (found.has('JavaScript') && found.has('Java')) {
+    // Only keep Java if it appears independently (not just as part of JavaScript)
+    const javaAlone = textLower.replace(/javascript/g, '').includes('java');
+    if (!javaAlone) found.delete('Java');
+  }
+
+  // Remove "React" duplicate if "React Native" was found
+  // (both are valid, keep both — they're different skills)
 
   return [...found];
 }
