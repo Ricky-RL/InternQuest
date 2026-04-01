@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useProfile } from '../context/useProfile';
 import { matchScore } from '../utils/matchScore';
 import { jobs } from '../data/jobs';
@@ -246,16 +247,17 @@ export default function Profile() {
         ) : (
           <div className="space-y-3">
             {topMatches.map(({ job, score }) => (
-              <div
+              <Link
                 key={job.id}
-                className="flex items-center justify-between py-2 border-b border-white/[0.06] last:border-0"
+                to={`/jobs/${job.id}`}
+                className="flex items-center justify-between py-2 border-b border-white/[0.06] last:border-0 hover:bg-white/[0.03] rounded px-1 -mx-1 transition-colors"
               >
                 <div className="min-w-0">
                   <p className="text-slate-100 font-medium truncate">{job.title}</p>
                   <p className="text-slate-400 text-sm">{job.company}</p>
                 </div>
                 {scoreBadge(score)}
-              </div>
+              </Link>
             ))}
           </div>
         )}
