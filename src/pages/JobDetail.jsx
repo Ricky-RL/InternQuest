@@ -70,8 +70,24 @@ export default function JobDetail() {
       {/* Header card */}
       <div className="bg-white/[0.04] border border-white/10 backdrop-blur-sm rounded-xl p-6 mb-8">
         <div className="flex items-start gap-4">
-          <div className="w-16 h-16 bg-white/[0.08] rounded-xl text-2xl font-bold text-slate-300 flex items-center justify-center shrink-0">
-            {job.logoInitial}
+          <div className="w-16 h-16 bg-white/[0.08] rounded-xl flex items-center justify-center shrink-0 overflow-hidden">
+            {job.logoUrl ? (
+              <img
+                src={job.logoUrl}
+                alt={`${job.company} logo`}
+                className="w-full h-full object-contain p-2"
+                onError={e => {
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextSibling.style.display = 'flex';
+                }}
+              />
+            ) : null}
+            <span
+              style={{ display: job.logoUrl ? 'none' : 'flex' }}
+              className="w-full h-full items-center justify-center text-2xl font-bold text-slate-300"
+            >
+              {job.logoInitial}
+            </span>
           </div>
           <div className="min-w-0">
             <h1 className="text-2xl font-bold text-slate-100">{job.title}</h1>
