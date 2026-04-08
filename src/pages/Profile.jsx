@@ -4,6 +4,7 @@ import { useProfile } from '../context/useProfile';
 import { matchScore } from '../utils/matchScore';
 import { parseResume } from '../utils/parseResume';
 import { jobs } from '../data/jobs';
+import { semanticScores, categoryPriority, inferCategoryFromMajor } from '../data/semanticScores';
 
 export default function Profile() {
   const { profile, saveProfile } = useProfile();
@@ -95,36 +96,67 @@ export default function Profile() {
   }, [parsed]);
 
   const topMatches = useMemo(() => {
-    if (!form.skills.length) return [];
-    return jobs
-      .map(job => ({
-        job,
-        score: matchScore(job, form),
-      }))
-      .filter(entry => entry.score !== null)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
+    const hasInput = form.skills.length > 0 || form.major.trim() || form.experience.trim();
+    if (!hasInput) return [];
+
+    const category = inferCategoryFromMajor(form.major);
+    let candidateIds;
+
+    if (category && categoryPriority[category]) {
+      // Major-based: show that category's priority list first, then fill with skills
+      const priorityIds = categoryPriority[category];
+      const othersWithScore = jobs
+        .filter(j => !priorityIds.includes(j.id) && semanticScores[j.id])
+        .map(j => ({ id: j.id, score: matchScore(j, form) ?? 0 }))
+        .sort((a, b) => b.score - a.score)
+        .map(j => j.id);
+      candidateIds = [...priorityIds, ...othersWithScore];
+    } else {
+      // Skills-only fallback: rank all jobs with a semantic score by skill overlap
+      candidateIds = jobs
+        .filter(j => semanticScores[j.id])
+        .map(j => ({ id: j.id, score: matchScore(j, form) ?? 0 }))
+        .sort((a, b) => b.score - a.score)
+        .map(j => j.id);
+    }
+
+    return candidateIds.slice(0, 5).map(id => ({
+      job: jobs.find(j => j.id === id),
+      scores: semanticScores[id],
+    })).filter(entry => entry.job);
   }, [form]);
 
-  const scoreBadge = (score) => {
-    if (score >= 80) {
-      return (
-        <span className="bg-emerald-900/20 border border-emerald-500/30 text-emerald-300 rounded-full px-2.5 py-0.5 text-sm font-medium">
-          {score}%
-        </span>
-      );
-    }
-    if (score >= 60) {
-      return (
-        <span className="bg-amber-900/20 border border-amber-500/30 text-amber-300 rounded-full px-2.5 py-0.5 text-sm font-medium">
-          {score}%
-        </span>
-      );
-    }
+  const overallBadge = (score) => {
+    let cls;
+    if (score >= 90) cls = 'bg-emerald-900/20 border border-emerald-500/30 text-emerald-300';
+    else if (score >= 80) cls = 'bg-emerald-900/20 border border-emerald-500/20 text-emerald-400';
+    else if (score >= 70) cls = 'bg-amber-900/20 border border-amber-500/30 text-amber-300';
+    else cls = 'bg-white/[0.04] border border-white/10 text-slate-400';
     return (
-      <span className="bg-white/[0.04] border border-white/10 text-slate-400 rounded-full px-2.5 py-0.5 text-sm font-medium">
+      <span className={`rounded-full px-2.5 py-0.5 text-sm font-semibold ${cls}`}>
         {score}%
       </span>
+    );
+  };
+
+  const DimensionBar = ({ label, value }) => {
+    let barColor;
+    if (value >= 90) barColor = 'bg-emerald-400';
+    else if (value >= 75) barColor = 'bg-violet-400';
+    else barColor = 'bg-amber-400';
+    return (
+      <div className="flex-1 min-w-0">
+        <div className="flex justify-between items-center mb-1">
+          <span className="text-slate-500 text-xs">{label}</span>
+          <span className="text-slate-400 text-xs font-medium">{value}%</span>
+        </div>
+        <div className="h-1 rounded-full bg-white/[0.06]">
+          <div
+            className={`h-1 rounded-full ${barColor} transition-all duration-500`}
+            style={{ width: `${value}%` }}
+          />
+        </div>
+      </div>
     );
   };
 
@@ -279,24 +311,66 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Match Preview card */}
+      {/* Recommended For You card */}
       <div className="bg-white/[0.04] border border-white/10 backdrop-blur-sm rounded-xl p-6">
-        <h2 className="text-lg font-semibold text-slate-100 mb-4">Profile Match Preview</h2>
-        {form.skills.length === 0 ? (
-          <p className="text-slate-400">Add skills to see match scores</p>
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
+            <span className="text-violet-400">✦</span> Recommended For You
+          </h2>
+        </div>
+        <p className="text-slate-500 text-xs mb-5">Based on your profile · Updated in real-time</p>
+
+        {topMatches.length === 0 ? (
+          <p className="text-slate-400 text-sm">
+            Fill in your major, skills, or experience to see personalized recommendations
+          </p>
         ) : (
-          <div className="space-y-3">
-            {topMatches.map(({ job, score }) => (
+          <div className="space-y-5">
+            {topMatches.map(({ job, scores }) => (
               <Link
                 key={job.id}
                 to={`/jobs/${job.id}`}
-                className="flex items-center justify-between py-2 border-b border-white/[0.06] last:border-0 hover:bg-white/[0.03] rounded px-1 -mx-1 transition-colors"
+                className="block border border-white/[0.07] rounded-xl p-4 hover:border-violet-500/40 hover:bg-white/[0.03] transition-all"
               >
-                <div className="min-w-0">
-                  <p className="text-slate-100 font-medium truncate">{job.title}</p>
-                  <p className="text-slate-400 text-sm">{job.company}</p>
+                {/* Header row */}
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-white/[0.08] flex items-center justify-center text-slate-300 font-bold text-xs shrink-0 overflow-hidden">
+                      {job.logoDomain ? (
+                        <img
+                          src={`https://www.google.com/s2/favicons?domain=${job.logoDomain}&sz=64`}
+                          alt={`${job.company} logo`}
+                          className="w-5 h-5 object-contain"
+                          onError={e => {
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <span
+                        style={{ display: job.logoDomain ? 'none' : 'flex' }}
+                        className="w-full h-full items-center justify-center"
+                      >
+                        {job.logoInitial}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-slate-100 font-semibold text-sm truncate">{job.title}</p>
+                      <p className="text-slate-400 text-xs">{job.company} &middot; {job.location}</p>
+                    </div>
+                  </div>
+                  {overallBadge(scores.overall)}
                 </div>
-                {scoreBadge(score)}
+
+                {/* Dimension bars */}
+                <div className="flex gap-4 mt-3 mb-3">
+                  <DimensionBar label="Technical" value={scores.technical} />
+                  <DimensionBar label="Experience" value={scores.experience} />
+                  <DimensionBar label="Interest" value={scores.interest} />
+                </div>
+
+                {/* Why match */}
+                <p className="text-slate-500 text-xs italic">"{scores.whyMatch}"</p>
               </Link>
             ))}
           </div>
